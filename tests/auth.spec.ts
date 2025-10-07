@@ -56,3 +56,67 @@ test.describe('Registration Page', () => {
     await expect(page).not.toHaveURL(/.*\/dashboard/);
   });
 });
+
+test.describe('Login Page', () => {
+
+  // Test 1: The "Happy Path" for a successful login
+  test('should allow a user to log in successfully', async ({ page }) => {
+    // Mock the API response for a successful login (PUT request)
+    await page.route('*/**/api/auth', async route => {
+      // This mock only needs to handle the PUT request for this test
+      if (route.request().method() === 'PUT') {
+        await route.fulfill({
+          status: 200, // OK
+          json: {
+            user: { id: 456, name: 'Darth Vader', email: 'darth@deathstar.com' },
+            token: 'mock-jwt-token-for-darth-67890'
+          },
+        });
+      }
+    });
+
+    // 1. Navigate to the login page
+    await page.goto('/login');
+
+    // 2. Fill out the form
+    await page.getByLabel('Email address').fill('darth@deathstar.com');
+    await page.getByLabel('Password').fill('ValidPassword123');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    // 3. Assert the user is redirected (e.g., to the home page or a dashboard)
+    // We expect the URL to no longer be the login page.
+    await expect(page).not.toHaveURL(/.*\/login/);
+
+    // 4. Assert that the user's initials ("DV") are now visible in the header
+    await expect(page.getByRole('link', { name: 'DV' })).toBeVisible();
+  });
+
+  // Test 2: The "Sad Path" for failed login
+  test('should show an error message with invalid credentials', async ({ page }) => {
+    // Mock the API response for a failed login
+    await page.route('*/**/api/auth', async route => {
+      if (route.request().method() === 'PUT') {
+        await route.fulfill({
+          status: 401, // Unauthorized
+          json: { message: 'Invalid credentials. Try again.' },
+        });
+      }
+    });
+
+    // 1. Navigate to the login page
+    await page.goto('/login');
+
+    // 2. Fill out the form with incorrect details
+    await page.getByLabel('Email address').fill('darth@deathstar.com');
+    await page.getByLabel('Password').fill('WrongPassword');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    // 3. Assert the error message is visible
+    // Your code uses `JSON.stringify(error)`, so we must check for the literal JSON string.
+    await expect(page.getByText('Invalid credentials. Try again.')).toBeVisible();
+
+    // 4. Assert the user is still on the login page
+    await expect(page).toHaveURL(/.*\/login/);
+  });
+
+});
