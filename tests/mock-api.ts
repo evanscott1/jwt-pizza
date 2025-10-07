@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Route } from '@playwright/test';
-import { type User, Role } from '../src/types';
+import { Role, User } from '../src/service/pizzaService';
 
 const validUsers: Record<string, User> = {
   'd@jwt.com': { id: '3', name: 'Kai Chen', email: 'd@jwt.com', password: 'a', roles: [{ role: Role.Diner }] },
