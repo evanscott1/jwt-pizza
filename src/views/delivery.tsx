@@ -10,7 +10,7 @@ import { JWTPayload, Order } from '../service/pizzaService';
 export default function Delivery() {
   const navigate = useNavigate();
   const location = useLocation();
-  const order: Order = location.state?.order || { pizzas: [] };
+  const order: Order = location.state?.order || { items: [] };
   const jwt: string = location.state?.jwt || 'error';
   const [jwtPayload, setJwtPayload] = React.useState<JWTPayload>({ message: 'invalid', payload: "{ error: 'invalid JWT' }" });
 
@@ -46,10 +46,10 @@ export default function Delivery() {
         </div>
 
         <div className="my-4 text-lg text-orange-200 text-start grid grid-cols-5 gap-2">
-          <div className="font-semibold text-orange-400">order ID:</div> <div className="col-span-4">{order.id}</div>
-          <div className="font-semibold text-orange-400">pie count:</div> <div className="col-span-4">{order.items?.length}</div>
+          <div className="font-semibold text-orange-400">order ID:</div> <div className="col-span-4" data-testid="order-id">{order.id}</div>
+          <div className="font-semibold text-orange-400">pie count:</div> <div className="col-span-4" data-testid="pie-count">{order.items?.length}</div>
           <div className="font-semibold text-orange-400">total:</div>{' '}
-          <div className="col-span-4">{order.items?.reduce((a: number, c: any) => a + c.price, 0).toLocaleString()} ₿</div>
+          <div className="col-span-4" data-testid="order-total">{order.items?.reduce((a: number, c: any) => a + c.price, 0).toLocaleString()} ₿</div>
         </div>
 
         <div
