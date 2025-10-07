@@ -46,8 +46,8 @@ export default function Register(props: Props) {
         <form onSubmit={register}>
           <div className="flex  justify-center items-center flex-col mt-8 space-y-4">
             <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
+              <label htmlFor="name" className="sr-only">
+                Name
               </label>
               <div className="relative">
                 <input
@@ -66,21 +66,28 @@ export default function Register(props: Props) {
                 </div>
               </div>
             </div>
-            <div className="relative">
-              <input
-                type="email"
-                value={email}
-                autoComplete="email"
-                required
-                onChange={(e) => setEmail(e.target.value)}
-                id="email"
-                className="py-3 ps-11 pe-4 block w-full bg-white/10 border-white/20 text-white placeholder:text-white rounded-lg text-sm focus:border-white/30 focus:ring-white/30 sm:p-4 sm:ps-11"
-                placeholder="Email address"
-              />
-              <div className="text-orange-500 absolute inset-y-0 start-0 flex items-center pointer-events-none z-20 ps-4">
-                <EmailIcon />
+            <div>
+              <label htmlFor="email" className="sr-only">
+                Email address
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  value={email}
+                  autoComplete="email"
+                  required
+                  onChange={(e) => setEmail(e.target.value)}
+                  id="email"
+                  className="py-3 ps-11 pe-4 block w-full bg-white/10 border-white/20 text-white placeholder:text-white rounded-lg text-sm focus:border-white/30 focus:ring-white/30 sm:p-4 sm:ps-11"
+                  placeholder="Email address"
+                />
+                <div className="text-orange-500 absolute inset-y-0 start-0 flex items-center pointer-events-none z-20 ps-4">
+                  <EmailIcon />
+                </div>
               </div>
             </div>
+
+
             <div>
               <label htmlFor="password" className="sr-only">
                 Password
