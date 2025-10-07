@@ -37,10 +37,10 @@ export default function DinerDashboard(props: Props) {
         </div>
 
         <div className="my-4 text-lg text-orange-200 text-start grid grid-cols-5 gap-2">
-          <div className="font-semibold text-orange-400">name:</div> <div className="col-span-4">{user.name}</div>
-          <div className="font-semibold text-orange-400">email:</div> <div className="col-span-4">{user.email}</div>
+          <div className="font-semibold text-orange-400">name:</div> <div className="col-span-4" data-testid="user-name">{user.name}</div>
+          <div className="font-semibold text-orange-400">email:</div> <div className="col-span-4" data-testid="user-email">{user.email}</div>
           <div className="font-semibold text-orange-400">role:</div>{' '}
-          <div className="col-span-4">
+          <div className="col-span-4" data-testid="user-roles">
             {user.roles &&
               user.roles.map((role, index) => (
                 <span key={index}>
