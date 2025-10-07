@@ -54,7 +54,7 @@ test.describe('Registration Page', () => {
 
     // Assert that the user was NOT redirected
     await expect(page).not.toHaveURL(/.*\/dashboard/);
-  });
+  }); 
 });
 
 test.describe('Login Page', () => {
@@ -117,6 +117,53 @@ test.describe('Login Page', () => {
 
     // 4. Assert the user is still on the login page
     await expect(page).toHaveURL(/.*\/login/);
+  });
+
+});
+
+test.describe('Logout Flow', () => {
+
+  test('should log out a user and redirect to the homepage', async ({ page }) => {
+    // 1. SETUP: Start the test in a logged-in state.
+    // We mock the initial user check to make the app think a user is logged in.
+    await page.route('*/**/api/user/me', async route => {
+      await route.fulfill({
+        status: 200,
+        json: { id: 456, name: 'Darth Vader', email: 'darth@deathstar.com' },
+      });
+    }, {times: 1});
+
+        await page.route('/api/user/me', async route => {
+      await route.fulfill({ status: 401 }); // Unauthorized
+    });
+
+    // Mock the DELETE request to the logout endpoint.
+    // We can respond with a 204 "No Content" which is common for successful DELETEs.
+    await page.route('/api/auth', async route => {
+      if (route.request().method() === 'DELETE') {
+        await route.fulfill({ status: 204 });
+      }
+    });
+
+    // Start on the homepage to confirm the initial "logged-in" UI is correct
+    await page.goto('/');
+    // The user's initials ("DV") should be visible before logging out
+    await expect(page.getByRole('link', { name: 'DV' })).toBeVisible();
+
+
+    // 2. ACTION: Trigger the logout by navigating to the logout page.
+    await page.goto('/logout');
+
+
+    // 3. ASSERTION: Verify the user is logged out.
+    // The user should be redirected to the homepage.
+    await expect(page).toHaveURL(/.*\//); // Adjust if your base URL is different
+
+    // The "Login" link should now be visible in the header.
+    await expect(page.getByRole('link', { name: 'Login' })).toBeVisible();
+
+    // The user's initials should no longer be visible.
+    await expect(page.getByRole('link', { name: 'DV' })).not.toBeVisible();
   });
 
 });
