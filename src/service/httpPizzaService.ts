@@ -59,6 +59,11 @@ async getUser(): Promise<User | null> {
   }
 }
 
+async updateUser(updatedUser: User): Promise<User> {
+  const { user} = await this.callEndpoint(`/api/user/${updatedUser.id}`, 'PUT', updatedUser);
+  return Promise.resolve(user);
+}
+
   async getMenu(): Promise<Menu> {
     return this.callEndpoint('/api/order/menu');
   }
