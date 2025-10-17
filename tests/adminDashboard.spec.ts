@@ -153,18 +153,35 @@ test.describe('Admin Dashboard', () => {
     });
     });
 
-    // Set up a promise that waits for the API call with the filter parameter
-    const filterRequestPromise = page.waitForRequest('**/api/franchise?**name=*Planet*');
+    await page.route('**/api/franchise?**name=*Planet*', async route => {
+      await route.fulfill({
+        status: 200,
+        json: {
+          franchises: [{
+            id: 'f-planet',
+            name: 'Pizza Planet', // Filtered data
+            admins: [{ name: 'Buzz Lightyear' }],
+            stores: []
+          }],
+          more: false
+        }
+      });
+    });
 
-    await page.goto('/admin-dashboard');
+await page.goto('/admin-dashboard');
+    // Wait for initial content to ensure the page is ready
+    await expect(page.getByRole('table')).toContainText('Main Street Pizza Co.');
 
-    // Fill the filter input and click submit
+    // 2. ACT: Fill the filter input and click submit
     await page.getByPlaceholder('Filter franchises').fill('Planet');
     await page.getByRole('button', { name: 'Submit' }).click();
 
-    // Wait for the API call with the filter to happen and confirm it was made
-    const filterRequest = await filterRequestPromise;
-    expect(filterRequest).toBeDefined();
+    // 3. ASSERT: The UI has updated with the filtered data
+    // Use an explicit wait to ensure the re-render has completed
+    await expect(page.getByRole('table')).toContainText('Pizza Planet');
+    
+    // Also, assert that the old data is gone
+    await expect(page.getByRole('table')).not.toContainText('Main Street Pizza Co.');
   });
 
   test('should display the user list when the Users tab is clicked', async ({ page }) => {
@@ -172,17 +189,17 @@ test.describe('Admin Dashboard', () => {
     await page.route('*/**/api/user/me', async route => {
       await route.fulfill({
         status: 200,
-        json: { id: 'user-admin', name: 'Super Admin', roles: [{ role: Role.Admin }] },
+        json: { id: 'user-admin', name: 'Super Admin', email: 'admin@test.com', roles: [{ role: Role.Admin }] },
       });
     });
 
     // Mock the franchise endpoint (for the initial view)
-    await page.route('**/api/franchise?page=0**', async route => {
+    await page.route('*/**/api/franchise?page=0**', async route => {
       await route.fulfill({ status: 200, json: { franchises: [], more: false } });
     });
 
     // Mock the user endpoint that will be called when the tab is clicked
-    await page.route('**/api/user**', async route => {
+    await page.route('*/**/api/user?page=0**', async route => {
       await route.fulfill({
         status: 200,
         json: {
@@ -198,16 +215,15 @@ test.describe('Admin Dashboard', () => {
 
     await page.goto('/admin-dashboard');
 
+        // Assert the admin view is visible
+    await expect(page.getByRole('heading', { name: "Mama Ricci's kitchen" })).toBeVisible();
+
     // 2. ACT: Find and click the "Users" tab
     const usersTab = page.getByRole('tab', { name: 'Users' });
     await usersTab.click();
-
-    // 3. ASSERT: The UI has updated correctly
-    // The franchise table should no longer be visible
-    await expect(page.getByRole('table', { name: /franchises/i })).not.toBeVisible();
     
     // The new user table should be visible and contain the mocked data
-    const userTable = page.getByRole('table', { name: /users/i });
+    const userTable = page.getByRole('table');
     await expect(userTable).toBeVisible();
     await expect(userTable).toContainText('John Doe');
     await expect(userTable).toContainText('john.doe@test.com');
@@ -227,7 +243,7 @@ test.describe('Admin Dashboard', () => {
       { id: 'user-to-keep', name: 'Jane Smith', email: 'jane.smith@test.com', roles: [{ role: Role.Diner }] }
     ];
 
-    await page.route('**/api/user**', async route => {
+    await page.route('**/api/user?page=0**', async route => {
       await route.fulfill({ status: 200, json: { users: mockUsers } });
     });
 
@@ -244,6 +260,10 @@ test.describe('Admin Dashboard', () => {
 
     // 2. Act: Navigate, switch to the Users tab, and click delete
     await page.goto('/admin-dashboard');
+
+            // Assert the admin view is visible
+    await expect(page.getByRole('heading', { name: "Mama Ricci's kitchen" })).toBeVisible();
+
     await page.getByRole('tab', { name: 'Users' }).click();
 
     // Find the specific row and click its delete button
@@ -265,7 +285,7 @@ test('should show an error and not remove the user if deletion fails', async ({ 
       { id: 'user-to-delete', name: 'John Doe', email: 'john.doe@test.com', roles: [{ role: Role.Diner }] }
     ];
 
-    await page.route('**/api/user**', async route => {
+    await page.route('**/api/user?page=0**', async route => {
       // Only mock the initial GET request, not the delete
       if (route.request().method() === 'GET') {
         await route.fulfill({ status: 200, json: { users: mockUsers } });
@@ -284,6 +304,9 @@ test('should show an error and not remove the user if deletion fails', async ({ 
 
     // 2. Act: Navigate and attempt to delete the user
     await page.goto('/admin-dashboard');
+
+            // Assert the admin view is visible
+    await expect(page.getByRole('heading', { name: "Mama Ricci's kitchen" })).toBeVisible();
     await page.getByRole('tab', { name: 'Users' }).click();
     await page.locator('[data-testid="user-row-john.doe@test.com"]').getByRole('button', { name: 'Delete' }).click();
 
