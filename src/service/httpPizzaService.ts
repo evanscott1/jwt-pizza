@@ -59,10 +59,29 @@ async getUser(): Promise<User | null> {
   }
 }
 
+async getUsers(options: { page: number; limit: number; name?: string }): Promise<User[]> {
+    // 1. Create a URL search parameter object to safely build the query string
+    const params = new URLSearchParams({
+      page: String(options.page),
+      limit: String(options.limit),
+    });
+
+    if (options.name) {
+      params.append('name', options.name);
+    }
+
+    const { users } = await this.callEndpoint(`/api/user?${params.toString()}`);
+    return users;
+  }
+
 async updateUser(updatedUser: User): Promise<User> {
   const { user} = await this.callEndpoint(`/api/user/${updatedUser.id}`, 'PUT', updatedUser);
   return Promise.resolve(user);
 }
+
+async deleteUser(userId: string | undefined): Promise<void> {
+    await this.callEndpoint(`/api/user/${userId}`, 'DELETE');
+  }
 
   async getMenu(): Promise<Menu> {
     return this.callEndpoint('/api/order/menu');
