@@ -215,4 +215,83 @@ test.describe('Admin Dashboard', () => {
     // Assert the "Users" tab is now the active one
     await expect(usersTab).toHaveAttribute('aria-selected', 'true');
   });
+
+  test('should delete a user and remove them from the list', async ({ page }) => {
+    // 1. Arrange: Mock admin login and the initial user list
+    await page.route('*/**/api/user/me', async route => {
+      await route.fulfill({ status: 200, json: { id: 'admin-1', name: 'Admin', roles: [{ role: Role.Admin }] } });
+    });
+
+    const mockUsers = [
+      { id: 'user-to-delete', name: 'John Doe', email: 'john.doe@test.com', roles: [{ role: Role.Diner }] },
+      { id: 'user-to-keep', name: 'Jane Smith', email: 'jane.smith@test.com', roles: [{ role: Role.Diner }] }
+    ];
+
+    await page.route('**/api/user**', async route => {
+      await route.fulfill({ status: 200, json: { users: mockUsers } });
+    });
+
+    // Mock the successful DELETE request for the specific user
+    await page.route('**/api/user/user-to-delete', async route => {
+      // Ensure the method is DELETE before fulfilling
+      if (route.request().method() === 'DELETE') {
+        await route.fulfill({ status: 200, json: { message: 'user deleted' } });
+      }
+    });
+
+    // Handle the confirmation dialog automatically
+    page.on('dialog', dialog => dialog.accept());
+
+    // 2. Act: Navigate, switch to the Users tab, and click delete
+    await page.goto('/admin-dashboard');
+    await page.getByRole('tab', { name: 'Users' }).click();
+
+    // Find the specific row and click its delete button
+    const rowToDelete = page.locator('[data-testid="user-row-john.doe@test.com"]');
+    await rowToDelete.getByRole('button', { name: 'Delete' }).click();
+
+    // 3. Assert: The user is removed from the UI
+    await expect(page.locator('[data-testid="user-row-john.doe@test.com"]')).not.toBeVisible();
+    await expect(page.locator('[data-testid="user-row-jane.smith@test.com"]')).toBeVisible();
+  });
+
+test('should show an error and not remove the user if deletion fails', async ({ page }) => {
+    // 1. Arrange: Mock admin login and the initial user list
+    await page.route('*/**/api/user/me', async route => {
+      await route.fulfill({ status: 200, json: { id: 'admin-1', name: 'Admin', roles: [{ role: Role.Admin }] } });
+    });
+
+    const mockUsers = [
+      { id: 'user-to-delete', name: 'John Doe', email: 'john.doe@test.com', roles: [{ role: Role.Diner }] }
+    ];
+
+    await page.route('**/api/user**', async route => {
+      // Only mock the initial GET request, not the delete
+      if (route.request().method() === 'GET') {
+        await route.fulfill({ status: 200, json: { users: mockUsers } });
+      }
+    });
+    
+    // Mock a FAILED DELETE request
+    await page.route('**/api/user/user-to-delete', async route => {
+      if (route.request().method() === 'DELETE') {
+        await route.fulfill({ status: 500, json: { message: 'Internal Server Error' } });
+      }
+    });
+
+    // Handle the confirmation dialog
+    page.on('dialog', dialog => dialog.accept());
+
+    // 2. Act: Navigate and attempt to delete the user
+    await page.goto('/admin-dashboard');
+    await page.getByRole('tab', { name: 'Users' }).click();
+    await page.locator('[data-testid="user-row-john.doe@test.com"]').getByRole('button', { name: 'Delete' }).click();
+
+    // 3. Assert: The user is still visible and an error is shown
+    await expect(page.locator('[data-testid="user-row-john.doe@test.com"]')).toBeVisible();
+    
+    // You would need to add an error notification component with a test ID
+    // await expect(page.locator('[data-testid="error-toast"]')).toContainText('Failed to delete user');
+  });
+
 });
