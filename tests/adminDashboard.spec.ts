@@ -69,6 +69,9 @@ test.describe('Admin Dashboard', () => {
     await expect(franchiseTable).toContainText('Buzz Lightyear');
     await expect(franchiseTable).toContainText('Main Street');
     await expect(franchiseTable).toContainText('1,000 ₿');
+
+    await expect(page.getByRole('tab', { name: 'Franchises' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: 'Users' })).toHaveAttribute('aria-selected', 'false');
   });
 
   // Test Case 3: Pagination functionality
@@ -162,5 +165,54 @@ test.describe('Admin Dashboard', () => {
     // Wait for the API call with the filter to happen and confirm it was made
     const filterRequest = await filterRequestPromise;
     expect(filterRequest).toBeDefined();
+  });
+
+  test('should display the user list when the Users tab is clicked', async ({ page }) => {
+    // 1. ARRANGE: Set up mocks for an admin user and both API endpoints
+    await page.route('*/**/api/user/me', async route => {
+      await route.fulfill({
+        status: 200,
+        json: { id: 'user-admin', name: 'Super Admin', roles: [{ role: Role.Admin }] },
+      });
+    });
+
+    // Mock the franchise endpoint (for the initial view)
+    await page.route('**/api/franchise?page=0**', async route => {
+      await route.fulfill({ status: 200, json: { franchises: [], more: false } });
+    });
+
+    // Mock the user endpoint that will be called when the tab is clicked
+    await page.route('**/api/user**', async route => {
+      await route.fulfill({
+        status: 200,
+        json: {
+          users: [{
+            id: 'user-123',
+            name: 'John Doe',
+            email: 'john.doe@test.com',
+            roles: [{ role: Role.Diner }]
+          }]
+        }
+      });
+    });
+
+    await page.goto('/admin-dashboard');
+
+    // 2. ACT: Find and click the "Users" tab
+    const usersTab = page.getByRole('tab', { name: 'Users' });
+    await usersTab.click();
+
+    // 3. ASSERT: The UI has updated correctly
+    // The franchise table should no longer be visible
+    await expect(page.getByRole('table', { name: /franchises/i })).not.toBeVisible();
+    
+    // The new user table should be visible and contain the mocked data
+    const userTable = page.getByRole('table', { name: /users/i });
+    await expect(userTable).toBeVisible();
+    await expect(userTable).toContainText('John Doe');
+    await expect(userTable).toContainText('john.doe@test.com');
+
+    // Assert the "Users" tab is now the active one
+    await expect(usersTab).toHaveAttribute('aria-selected', 'true');
   });
 });
